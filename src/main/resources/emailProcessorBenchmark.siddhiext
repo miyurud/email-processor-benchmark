@@ -1,0 +1,5 @@
+filter=org.wso2.carbon.event.processor.common.storm.benchmarks.emailprocessor.extensions.FilterFunction
+modify=org.wso2.carbon.event.processor.common.storm.benchmarks.emailprocessor.extensions.ModifyFunction
+metrics=org.wso2.carbon.event.processor.common.storm.benchmarks.emailprocessor.extensions.MetricsFunction
+metricsGlobal=org.wso2.carbon.event.processor.common.storm.benchmarks.emailprocessor.extensions.GlobalMetricsFunction
+mostFrequentWord=org.wso2.carbon.event.processor.common.storm.benchmarks.emailprocessor.extensions.MostFrequentWordFunction

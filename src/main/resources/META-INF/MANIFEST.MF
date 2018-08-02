@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+
+
+Created-By: Apache Maven 3.3.3
+Main-Class: org.wso2.carbon.event.processor.common.storm.benchmarks.emailprocessor.EmailProcessor
+
+
+
+
