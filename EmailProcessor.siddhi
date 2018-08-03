@@ -1,0 +1,59 @@
+@App:name("UpdatedEmailProcessor")
+@App:description("Email Processor benchmark for WSO2 Stream Processor 4.x.x")
+
+
+@source(type='kafka',
+        topic.list='test',
+        partition.no.list='0',
+        threading.option='single.thread',
+        group.id="group",
+        bootstrap.servers='localhost:9092',
+        @map(type='json'))
+
+@Import('inputEmailsStream:1.0.0')
+define stream inputEmailsStream (iij_timestamp long, fromAddress string, toAddresses string, ccAddresses string, bccAddresses string, subject string, body string, regexstr string);
+
+@Export('outputEmailStream:1.0.0')
+define stream outputEmailStream (iij_timestamp long, fromAddress string, toAdds string, ccAdds string, bccAdds string, updatedSubject string, bodyObfuscated string);
+
+
+
+@sink(type='log')
+define stream AlertStream(iij_timestamp long, fromAddress string);
+define stream tempStream1(tempTrrb long);
+
+
+
+
+@name('query 11')
+@dist(parallel='1', execGroup='filter')
+from inputEmailsStream [ regex:find(regexstr, fromAddress) == true ] select iij_timestamp, fromAddress, toAddresses, ccAddresses, bccAddresses, subject, body insert into filteredEmailStream1;
+
+@name('query12') @dist(parallel='1', execGroup='filter') from filteredEmailStream1 select iij_timestamp, fromAddress, emailProcessorBenchmark:filter(toAddresses) as toAdds, emailProcessorBenchmark:filter(ccAddresses) as ccAdds, emailProcessorBenchmark:filter(bccAddresses) as bccAdds, subject, body insert into filteredEmailStream2;
+
+@name('query21') @dist(parallel='1', execGroup='modify') from filteredEmailStream2 select iij_timestamp, fromAddress, toAdds, ccAdds, bccAdds, subject, emailProcessorBenchmark:modify(body) as bodyObfuscated1 insert into modifiedEmailStream1;
+
+@name('query221') @dist(parallel='1', execGroup='modify') from modifiedEmailStream1 select iij_timestamp, fromAddress, toAdds, ccAdds, bccAdds, subject, str:replaceAll(bodyObfuscated1, 'Kenneth Lay', 'Person1') as bodyObfuscated2 insert into modifiedEmailStream2;
+
+@name('query222') @dist(parallel='1', execGroup='modify') from modifiedEmailStream2 select iij_timestamp, fromAddress, toAdds, ccAdds, bccAdds, subject, str:replaceAll(bodyObfuscated2, 'Jeffrey Skilling', 'Person2') as bodyObfuscated3 insert into modifiedEmailStream3;
+
+@name('query223') @dist(parallel='1', execGroup='modify') from modifiedEmailStream3 select iij_timestamp, fromAddress, toAdds, ccAdds, bccAdds, subject, str:replaceAll(bodyObfuscated3, 'Andrew Fastow', 'Person3') as bodyObfuscated4 insert into modifiedEmailStream4;
+
+@name('query23') @dist(parallel='1', execGroup='modify') from modifiedEmailStream4 select iij_timestamp, fromAddress, toAdds, ccAdds, bccAdds, emailProcessorBenchmark:mostFrequentWord(bodyObfuscated4, subject) as updatedSubject, bodyObfuscated4 as bodyObfuscated insert into modifiedEmailStream;
+
+@name('query3') @dist(parallel='1', execGroup='metrics') from modifiedEmailStream select iij_timestamp, fromAddress, toAdds, ccAdds, bccAdds, updatedSubject, bodyObfuscated, emailProcessorBenchmark:metrics(bodyObfuscated) as metrics insert into metricsEmailStream;
+
+from metricsEmailStream
+select iij_timestamp, str:concat(updatedSubject, "-->", metrics) as fromAddress
+insert into AlertStream; 
+
+
+from AlertStream#throughput:throughput(iij_timestamp,fromAddress)
+select aa as tempTrrb
+insert into tempStream1;
+
+
+
+--@name('query4') @dist(parallel='1', execGroup='global-metrics') from metricsEmailStream select emailProcessorBenchmark:metricsGlobal(metrics) as nullmetrics insert into nullStream;
+
+--@name('query5') @dist(parallel='1', execGroup='output') from metricsEmailStream select iij_timestamp, fromAddress, toAdds, ccAdds, bccAdds, updatedSubject, bodyObfuscated insert into outputEmailStream;
