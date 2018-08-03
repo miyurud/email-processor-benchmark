@@ -1,6 +1,14 @@
-@App:name("EmailProcessor")
+@App:name("UpdatedEmailProcessor")
 @App:description("Email Processor benchmark for WSO2 Stream Processor 4.x.x")
 
+
+@source(type='kafka',
+        topic.list='test',
+        partition.no.list='0',
+        threading.option='single.thread',
+        group.id="group",
+        bootstrap.servers='localhost:9092',
+        @map(type='json'))
 
 @Import('inputEmailsStream:1.0.0')
 define stream inputEmailsStream (iij_timestamp long, fromAddress string, toAddresses string, ccAddresses string, bccAddresses string, subject string, body string, regexstr string);
@@ -9,8 +17,12 @@ define stream inputEmailsStream (iij_timestamp long, fromAddress string, toAddre
 define stream outputEmailStream (iij_timestamp long, fromAddress string, toAdds string, ccAdds string, bccAdds string, updatedSubject string, bodyObfuscated string);
 
 
+
 @sink(type='log')
 define stream AlertStream(iij_timestamp long, fromAddress string);
+define stream tempStream1(tempTrrb long);
+
+
 
 
 @name('query 11')
@@ -33,7 +45,12 @@ from inputEmailsStream [ regex:find(regexstr, fromAddress) == true ] select iij_
 
 from metricsEmailStream
 select iij_timestamp, str:concat(updatedSubject, "-->", metrics) as fromAddress
-insert into AlertStream;
+insert into AlertStream; 
+
+
+from AlertStream#throughput:throughput(iij_timestamp,fromAddress)
+select aa as tempTrrb
+insert into tempStream1;
 
 
 
